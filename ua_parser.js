@@ -760,27 +760,40 @@
     // ============================================================
 
     function registerSource() {
+        // Додаємо кнопку через Listener — працює в усіх версіях Lampa
+        Lampa.Listener.follow("full", function (e) {
+            if (e.type !== "complite") return;
+
+            var movie = e.data.movie || e.data;
+            var btns  = e.object.activity.render().find(".full-start__buttons");
+            if (!btns.length) return;
+
+            // Не дублювати кнопку
+            if (btns.find(".ua-online-btn").length) return;
+
+            var btn = $('<div class="full-start__button ua-online-btn" style="cursor:pointer;">')
+                .text("🇺🇦 " + PLUGIN_NAME);
+
+            btn.on("click", function () {
+                new UAOnlineSource().start(movie);
+            });
+
+            btns.prepend(btn);
+        });
+
+        // Також реєструємо як Source якщо API доступне
         if (typeof Lampa.Source !== "undefined" && Lampa.Source.add) {
             Lampa.Source.add(PLUGIN_ID, {
-                name:   translate({ uk: "UA Online", ru: "UA Online", en: "UA Online" }),
+                name:   PLUGIN_NAME,
                 create: function () { return new UAOnlineSource(); },
             });
-        } else if (typeof Lampa.Providers !== "undefined") {
+        }
+
+        if (typeof Lampa.Providers !== "undefined" && Lampa.Providers.register) {
             Lampa.Providers.register({
                 name:  PLUGIN_NAME,
                 id:    PLUGIN_ID,
                 start: function (card) { new UAOnlineSource().start(card); },
-            });
-        } else {
-            // Кнопка в меню картки через Listener
-            Lampa.Listener.follow("full", function (e) {
-                if (e.type === "complite") {
-                    var btn = $('<div class="full-start__button">').text(PLUGIN_NAME);
-                    btn.on("click", function () {
-                        new UAOnlineSource().start(e.data.movie || e.data);
-                    });
-                    e.object.activity.render().find(".full-start__buttons").prepend(btn);
-                }
             });
         }
     }
