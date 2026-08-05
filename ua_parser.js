@@ -759,29 +759,34 @@
     //  Реєстрація у Lampa
     // ============================================================
 
+    function addUAButton(render, movie) {
+        var btns = render.find(".full-start__buttons, .card-full__buttons, .full__buttons").first();
+        if (!btns.length) return;
+        if (btns.find(".ua-online-btn").length) return;
+        var btn = $('<div class="full-start__button ua-online-btn" style="cursor:pointer;">').text("🇺🇦 UA Online");
+        btn.on("click", function () { new UAOnlineSource().start(movie); });
+        btns.prepend(btn);
+    }
+
     function registerSource() {
-        // Додаємо кнопку через Listener — працює в усіх версіях Lampa
+        // Слухаємо full подію — пробуємо всі типи
         Lampa.Listener.follow("full", function (e) {
-            if (e.type !== "complite") return;
-
-            var movie = e.data.movie || e.data;
-            var btns  = e.object.activity.render().find(".full-start__buttons");
-            if (!btns.length) return;
-
-            // Не дублювати кнопку
-            if (btns.find(".ua-online-btn").length) return;
-
-            var btn = $('<div class="full-start__button ua-online-btn" style="cursor:pointer;">')
-                .text("🇺🇦 " + PLUGIN_NAME);
-
-            btn.on("click", function () {
-                new UAOnlineSource().start(movie);
-            });
-
-            btns.prepend(btn);
+            if (e.type !== "complite" && e.type !== "complete" && e.type !== "render") return;
+            var movie = (e.data && (e.data.movie || e.data)) || {};
+            var render = e.object && e.object.activity && e.object.activity.render ? e.object.activity.render() : $();
+            setTimeout(function () { addUAButton(render, movie); }, 300);
         });
 
-        // Також реєструємо як Source якщо API доступне
+        // Запасний варіант через component
+        Lampa.Listener.follow("component", function (e) {
+            if (e.type !== "complite" && e.type !== "complete") return;
+            var movie = (e.object && e.object.card) || (e.data && (e.data.movie || e.data)) || {};
+            setTimeout(function () {
+                var render = e.object && e.object.render ? $(e.object.render()) : $();
+                addUAButton(render, movie);
+            }, 300);
+        });
+
         if (typeof Lampa.Source !== "undefined" && Lampa.Source.add) {
             Lampa.Source.add(PLUGIN_ID, {
                 name:   PLUGIN_NAME,
